@@ -1,0 +1,34 @@
+global:
+  scrape_interval: 15s        # How often to scrape targets
+  evaluation_interval: 15s    # How often to evaluate rules
+  scrape_timeout: 10s
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+# Load alert rules
+rule_files:
+  - "alert-rules.yml"
+
+# Scrape configurations - defines WHAT to monitor
+scrape_configs:
+  # Prometheus monitors itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Node Exporter - OS/hardware metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  # Our custom application
+  - job_name: 'sample-app'
+    static_configs:
+      - targets: ['sample-app:8000']
+    metrics_path: /metrics
+    scrape_interval: 5s  # More frequent for our app

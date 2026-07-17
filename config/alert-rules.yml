@@ -1,0 +1,66 @@
+groups:
+  - name: basic_alerts
+    rules:
+      # --- Traditional static threshold alerts ---
+      
+      # Alert when CPU usage exceeds 80% for 5 minutes
+      - alert: HighCpuUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is above 80% (current: {{ $value }}%)"
+
+      # Alert when memory usage exceeds 85%
+      - alert: HighMemoryUsage
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is above 85% (current: {{ $value }}%)"
+
+      # Alert when disk is almost full
+      - alert: DiskSpaceLow
+        expr: (1 - node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"}) * 100 > 90
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Disk space critically low on {{ $labels.instance }}"
+          description: "Disk usage is above 90% (current: {{ $value }}%)"
+
+  - name: application_alerts
+    rules:
+      # Alert on high error rate
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is above 5% (current: {{ $value | humanizePercentage }})"
+
+      # Alert on high latency
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1.0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High latency detected"
+          description: "95th percentile latency is above 1s (current: {{ $value }}s)"
+
+      # Alert when instance is down
+      - alert: InstanceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Instance {{ $labels.instance }} is down"
+          description: "{{ $labels.job }} instance has been unreachable for 1 minute"
